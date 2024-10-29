@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.widget.RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- TMap 지도 영역 -->
+    <LinearLayout
+        android:id="@+id/linearLayoutTmap"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        <!-- 지도 관련 내용은 여기에 추가 -->
+    </LinearLayout>
+
+    <!-- 목적지 검색창 -->
+    <EditText
+        android:id="@+id/etDestination"
+        android:layout_width="match_parent"
+        android:layout_height="82dp"
+        android:layout_alignParentTop="true"
+        android:layout_margin="8dp"
+        android:background="#FFFFFF"
+        android:hint="목적지를 입력하세요"
+        android:padding="8dp" />
+
+    <!-- 도보 경로 안내 버튼 -->
+    <Button
+        android:id="@+id/btnWalkRouteNavi"
+        android:layout_width="329dp"
+        android:layout_height="220dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="16dp"
+        android:text="도보 경로 안내"
+        android:textSize="24sp" /> <!-- 글씨 크기를 크게 설정 -->
+
+</android.widget.RelativeLayout>
