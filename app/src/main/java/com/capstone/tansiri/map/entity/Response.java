@@ -6,6 +6,7 @@ public class Response {
 
     private String type;
     private List<Feature> features;
+    private String userID;
 
     // Getters and Setters
     public String getType() {
@@ -22,6 +23,10 @@ public class Response {
 
     public void setFeatures(List<Feature> features) {
         this.features = features;
+    }
+
+    public String getUserID() {
+        return userID;
     }
 
     // Inner classes for Feature, Geometry, and Properties

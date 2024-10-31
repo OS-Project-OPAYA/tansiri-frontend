@@ -9,15 +9,17 @@ public class WalkRoute {
     private String startName;
     private String endName;
     private String response;
+    private String userID;
 
     // 모든 필드를 포함하는 생성자
-    public WalkRoute(String startX, String startY, String endX, String endY, String startName, String endName) {
+    public WalkRoute(String startX, String startY, String endX, String endY, String startName, String endName, String userID) {
         this.startX = startX;
         this.startY = startY;
         this.endX = endX;
         this.endY = endY;
         this.startName = startName;
         this.endName = endName;
+        this.userID = userID;
     }
 
 
@@ -47,5 +49,9 @@ public class WalkRoute {
 
     public String getEndName() {
         return endName;
+    }
+
+    public String getUserID() {
+        return userID;
     }
 }

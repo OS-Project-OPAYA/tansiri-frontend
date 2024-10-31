@@ -40,11 +40,15 @@ public class SearchActivity extends AppCompatActivity {
     private String currentLatitude;  // 현재 위도
     private String currentLongitude; // 현재 경도
     private String currentAddress;   // 현재 주소
+    private String userID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search);
+
+        // 고유 기기 ID 가져오기
+        userID = Util.getDeviceID(getApplicationContext());
 
         // Retrofit 인스턴스 생성 및 ApiService 설정
         apiService = RetrofitClient.getClient().create(ApiService.class);
@@ -62,11 +66,9 @@ public class SearchActivity extends AppCompatActivity {
             if (currentLatitude != null && currentLongitude != null) {
                 String endName = searchInput.getText().toString();
                 if (!endName.isEmpty()) {
-
                     // 현재 위치와 검색 장소를 서버로 전송
-                    //sendLocationToServer(currentAddress, currentLatitude, currentLongitude, endName);
-                    sendLocationToServer("현재위치", "36.6256013", "127.4542717", endName);
-
+                    sendLocationToServer("A", "36.6256013", "127.4542717", endName, userID);
+                    //sendLocationToServer(currentAddress, currentLatitude, currentLongitude, endName, userID);
                 } else {
                     Toast.makeText(SearchActivity.this, "목적지를 입력하세요.", Toast.LENGTH_SHORT).show();
                 }
@@ -75,6 +77,7 @@ public class SearchActivity extends AppCompatActivity {
             }
         });
     }
+
 
     private void requestLocationPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -143,9 +146,9 @@ public class SearchActivity extends AppCompatActivity {
         public void onProviderDisabled(String provider) { }
     };
 
-    private void sendLocationToServer(String addressName, String latitude, String longitude, String endName) {
+    private void sendLocationToServer(String addressName, String latitude, String longitude, String endName, String userID) {
         // Start 객체 생성
-        Start start = new Start(addressName, latitude, longitude);
+        Start start = new Start(addressName, latitude, longitude, userID);
 
         // 서버로 POST 요청
         Call<Start> call = apiService.createStart(start);
@@ -155,9 +158,10 @@ public class SearchActivity extends AppCompatActivity {
                 if (response.isSuccessful()) {
                     Toast.makeText(SearchActivity.this, "위치 정보 전송 성공!", Toast.LENGTH_SHORT).show();
                     // 목적지 검색 요청 전송
-                    sendSearchToServer(endName);
+                    sendSearchToServer(endName, userID);
                 } else {
                     Toast.makeText(SearchActivity.this, "위치 정보 전송 실패", Toast.LENGTH_SHORT).show();
+                    Log.e("API_ERROR", "Error: " + response.errorBody());
                 }
             }
 
@@ -165,14 +169,18 @@ public class SearchActivity extends AppCompatActivity {
             public void onFailure(Call<Start> call, Throwable t) {
                 Toast.makeText(SearchActivity.this, "서버 통신 실패: " + t.getMessage(), Toast.LENGTH_LONG).show();
                 Log.d("SearchActivity", "서버 통신 실패: " + t.getMessage());
-
             }
         });
     }
 
-    private void sendSearchToServer(String endName) {
-        Call<Poi> call = apiService.searchEndPoi(endName);
+    private void sendSearchToServer(String endName, String userID) {
+        // SearchRequest 객체 생성
+        Poi.SearchRequest searchRequest = new Poi.SearchRequest();
+        searchRequest.setKeyword(endName); // 검색할 키워드 설정
+        searchRequest.setUserID(userID);    // 사용자 ID 설정
 
+        // API 호출
+        Call<Poi> call = apiService.searchEndPoi(searchRequest);
         call.enqueue(new Callback<Poi>() {
             @Override
             public void onResponse(Call<Poi> call, Response<Poi> response) {
@@ -186,7 +194,7 @@ public class SearchActivity extends AppCompatActivity {
                     Toast.makeText(SearchActivity.this, "목적지 검색 성공!", Toast.LENGTH_SHORT).show();
 
                     // WalkingRoute 객체 생성
-                    WalkRoute walkRoute = new WalkRoute(currentLongitude, currentLatitude, longitude, latitude, currentAddress, name);
+                    WalkRoute walkRoute = new WalkRoute(currentLongitude, currentLatitude, longitude, latitude, currentAddress, name, userID);
 
                     // 경로 찾기 요청 전송 및 경로 정보 가져오기
                     findAndRetrieveRouteOnServer(walkRoute);
@@ -212,26 +220,26 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {
                 if (response.isSuccessful()) {
-                    Toast.makeText(SearchActivity.this, "경로 찾기 성공!", Toast.LENGTH_SHORT).show();
-
-                    // 서버에서 최신 경로 정보 가져오기
-                    getLatestRouteFromServer();
+                    Toast.makeText(SearchActivity.this, "경로 찾기 요청 성공!", Toast.LENGTH_SHORT).show();
+                    getWalkRoute(walkRoute.getUserID());
 
                 } else {
-                    Toast.makeText(SearchActivity.this, "경로 찾기 실패", Toast.LENGTH_SHORT).show();
+                    Log.e("API_ERROR", "Error: " + response.errorBody());
+                    Toast.makeText(SearchActivity.this, "경로 찾기 요청 실패", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<Void> call, Throwable t) {
+                Log.e("API_ERROR", "Failed: " + t.getMessage());
                 Toast.makeText(SearchActivity.this, "경로 찾기 서버 통신 실패: " + t.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
     }
 
-    // 서버에서 최신 경로 정보 가져오기
-    private void getLatestRouteFromServer() {
-        Call<WalkRoute> call = apiService.getLatestWalkRoute();
+    // 서버에서 유저의 가장 최근 도보 경로 불러오기
+    private void getWalkRoute(String userID) {
+        Call<WalkRoute> call = apiService.getWalkRoute(userID);
         call.enqueue(new Callback<WalkRoute>() {
             @Override
             public void onResponse(Call<WalkRoute> call, Response<WalkRoute> response) {
@@ -250,8 +258,9 @@ public class SearchActivity extends AppCompatActivity {
                     String endX = walkRoute.getEndX();
                     String endY = walkRoute.getEndY();
                     String res = walkRoute.getResponse();
+                    String userID = walkRoute.getUserID();
 
-                    goToWalkingRouteActivity(startName, endName, startX, startY, endX, endY, res);
+                    goToWalkingRouteActivity(startName, endName, startX, startY, endX, endY, res, userID);
                 } else {
                     Toast.makeText(SearchActivity.this, "경로 정보 가져오기 실패", Toast.LENGTH_SHORT).show();
                 }
@@ -265,7 +274,7 @@ public class SearchActivity extends AppCompatActivity {
     }
 
     // WalkingRoute 화면으로 이동하는 메서드
-    private void goToWalkingRouteActivity(String currentAddress, String destinationAddress, String startX, String startY, String endX, String endY, String response) {
+    private void goToWalkingRouteActivity(String currentAddress, String destinationAddress, String startX, String startY, String endX, String endY, String response, String userID) {
         Intent intent = new Intent(SearchActivity.this, WalkingRouteActivity.class);
         intent.putExtra("currentAddress", currentAddress);
         intent.putExtra("destinationAddress", destinationAddress);
@@ -274,6 +283,10 @@ public class SearchActivity extends AppCompatActivity {
         intent.putExtra("endX", endX);
         intent.putExtra("endY", endY);
         intent.putExtra("response", response);
+        intent.putExtra("userID", userID);
         startActivity(intent);
+        finish();
     }
 }
+
+
