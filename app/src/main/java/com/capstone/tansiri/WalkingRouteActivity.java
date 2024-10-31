@@ -174,7 +174,7 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
                 double endlon = Double.parseDouble(destinationLongitude);
 
                 tMapView.setCenterPoint(startlon, startlat); // 초기 위치로 중심 설정
-                tMapView.setZoomLevel(13); // 기본 줌 레벨 설정
+                tMapView.setZoomLevel(14); // 기본 줌 레벨 설정
                 tMapView.setCompassMode(true);
 
 
@@ -316,8 +316,8 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
             //userLat = location.getLatitude();
             //userLon = location.getLongitude();
 
-            userLat = 127.4542717;
-            userLon = 36.6256013;
+            userLat = 127.46255916;
+            userLon = 36.62371065;
 
             // 방위각을 y축 기준 회전각으로 변경
             Log.d(TAG, "현재 위치 - 위도: " + userLat + ", 경도: " + userLon);
