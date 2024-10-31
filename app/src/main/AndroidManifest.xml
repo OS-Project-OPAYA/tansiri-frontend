@@ -32,9 +32,12 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".WalkingRouteActivity" />
+        <activity android:name=".WalkingRouteActivity"
+            android:screenOrientation="portrait" />
         <activity android:name=".SearchActivity" />
         <activity android:name=".test" />
+        <activity android:name=".FavoriteActivity" />
+
 
 
     </application>
