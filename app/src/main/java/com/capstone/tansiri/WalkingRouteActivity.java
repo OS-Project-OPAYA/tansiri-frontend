@@ -173,7 +173,7 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
                 double endlat = Double.parseDouble(destinationLatitude);
                 double endlon = Double.parseDouble(destinationLongitude);
 
-                tMapView.setCenterPoint(startlon, startlat); // 초기 위치로 중심 설정
+                tMapView.setCenterPoint(startlat, startlon); // 초기 위치로 중심 설정
                 tMapView.setZoomLevel(14); // 기본 줌 레벨 설정
                 tMapView.setCompassMode(true);
 
@@ -247,7 +247,8 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
 
         logRunnable = new Runnable() {
             private int currentWaypointIndex = 0;
-            private boolean descriptionShown = false; // 설명이 이미 표시되었는지 확인
+            private boolean directionShown = false; // 직진이 이미 표시되었는지 확인
+            private boolean descriptionShown = false; // 현재 웨이포인트의 설명이 표시되었는지 확인
 
             @Override
             public void run() {
@@ -272,31 +273,38 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
                 // 안내 메시지 출력
                 String directionMessage;
                 if (directionToWaypoint < 30 || directionToWaypoint > 330) {
-                    directionMessage = "Straight.";
+                    directionMessage = "Straight";
+                    if (!directionShown) {
+                        Toast.makeText(WalkingRouteActivity.this, directionMessage, Toast.LENGTH_SHORT).show();
+                        directionShown = true; // 직진이 한 번 표시됨을 설정
+                    }
                 } else if (directionToWaypoint > 30 && directionToWaypoint < 150) {
-                    directionMessage = "Turn Right.";
+                    directionMessage = "Turn Right";
+                    Toast.makeText(WalkingRouteActivity.this, directionMessage, Toast.LENGTH_SHORT).show();
+                    directionShown = false; // Turn 안내 시 직진 다시 허용
                 } else {
-                    directionMessage = "Turn Left.";
+                    directionMessage = "Turn Left";
+                    Toast.makeText(WalkingRouteActivity.this, directionMessage, Toast.LENGTH_SHORT).show();
+                    directionShown = false; // Turn 안내 시 직진 다시 허용
                 }
 
                 Log.d(TAG, directionMessage + " Now - Lat: " + userLat + ", Lon: " + userLon + ", Dir: " + userDir + "/" + angleToWaypoint);
 
-
-
-                // 첫 번째 waypoint에 대한 설명 표시 (처음 시작할 때만)
+                // 각 웨이포인트의 설명은 한 번만 표시
                 if (currentWaypointIndex == 0 && !descriptionShown) {
                     Toast.makeText(WalkingRouteActivity.this, descriptions.get(currentWaypointIndex), Toast.LENGTH_SHORT).show();
-                    descriptionShown = true; // 첫 번째 설명 표시 후 상태 업데이트
+                    descriptionShown = true;
                 }
 
-                // 다음 waypoint로 이동
+                // 다음 웨이포인트로 이동
                 if (isCloseToWaypoint(userLat, userLon, waypointLat, waypointLon)) {
-                    // 다음 waypoint에 대한 설명 표시
+                    // 다음 웨이포인트에 대한 설명 표시
                     if (currentWaypointIndex < descriptions.size() - 1) {
                         Toast.makeText(WalkingRouteActivity.this, descriptions.get(currentWaypointIndex + 1), Toast.LENGTH_SHORT).show();
                     }
-                    currentWaypointIndex++; // 다음 waypoint로 이동
-                    descriptionShown = false; // 다음 waypoint에 대한 설명 표시를 위한 초기화
+                    currentWaypointIndex++; // 다음 웨이포인트로 이동
+                    descriptionShown = false; // 다음 웨이포인트 설명 표시 초기화
+                    directionShown = false; // 각 웨이포인트 도착 시 직진도 다시 허용
                 }
 
                 handler.postDelayed(this, 2000); // 2초마다 반복
@@ -313,11 +321,11 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
     private final LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(@NonNull Location location) {
-            //userLat = location.getLatitude();
-            //userLon = location.getLongitude();
+            userLat = location.getLatitude();
+            userLon = location.getLongitude();
 
-            userLat = 127.46255916;
-            userLon = 36.62371065;
+            //userLat = 127.46255916;
+            //userLon = 36.62371065;
 
             // 방위각을 y축 기준 회전각으로 변경
             Log.d(TAG, "현재 위치 - 위도: " + userLat + ", 경도: " + userLon);

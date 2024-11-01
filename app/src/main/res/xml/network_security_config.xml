@@ -1,5 +1,5 @@
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">192.168.134.104</domain>
+        <domain includeSubdomains="true">4.230.4.251</domain>
     </domain-config>
 </network-security-config>
