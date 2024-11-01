@@ -163,8 +163,8 @@ public class FavoriteActivity extends AppCompatActivity {
                                 showDeleteConfirmationDialog(favorite);
                             },
                             favorite -> {
-                                //sendLocationToServer(currentAddress, currentLatitude, currentLongitude, endName, userID);
-                                sendLocationToServer("A", "36.6256013", "127.4542717", favorite.getEndName(), userID);
+                                sendLocationToServer(currentAddress, currentLatitude, currentLongitude, favorite.getEndName(), userID);
+                                //sendLocationToServer("A", "36.6256013", "127.4542717", favorite.getEndName(), userID);
                             });
                     recyclerView.setAdapter(favoriteAdapter);
                 } else {

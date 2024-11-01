@@ -3,51 +3,43 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:padding="16dp">
 
-    <!-- 보행 경로 버튼 -->
+    <!-- 현재 위치 및 방위각 버튼 -->
     <Button
-        android:id="@+id/btn_open_walking_route"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Open Walking Route"
+        android:id="@+id/btn_a"
+        android:layout_width="0dp"
+        android:layout_height="80dp"
+        android:text="test"
+        android:textSize="20sp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="32dp"/>
 
-    <!-- 현재 위치 및 방위각 버튼 추가 -->
+    <!-- 테스트 버튼 (ID 수정된 버튼) -->
     <Button
         android:id="@+id/btn_open_cur_location"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Show Current Location and Bearing"
-        app:layout_constraintTop_toBottomOf="@id/btn_open_walking_route"
+        android:layout_width="0dp"
+        android:layout_height="80dp"
+        android:text="목적지 검색"
+        android:textSize="20sp"
+        app:layout_constraintTop_toBottomOf="@id/btn_a"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"/>
-
-    <!-- 중복된 버튼 ID 수정 -->
-    <Button
-        android:id="@+id/btn_a"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="qwe"
-        app:layout_constraintTop_toBottomOf="@id/btn_open_cur_location"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
-
-
+        android:layout_marginTop="24dp"/>
 
     <!-- 즐겨찾기 화면으로 이동하는 버튼 -->
     <Button
         android:id="@+id/btn_open_favorite"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Open Favorites"
-        app:layout_constraintTop_toBottomOf="@id/btn_a"
+        android:layout_width="0dp"
+        android:layout_height="80dp"
+        android:text="즐겨찾기"
+        android:textSize="20sp"
+        app:layout_constraintTop_toBottomOf="@id/btn_open_cur_location"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"/>
+        android:layout_marginTop="24dp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

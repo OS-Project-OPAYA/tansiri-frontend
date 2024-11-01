@@ -14,15 +14,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 보행 경로 화면으로 전환하는 버튼
-        Button buttonWalkingRoute = findViewById(R.id.btn_open_walking_route);
-        buttonWalkingRoute.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, WalkingRouteActivity.class);
-                startActivity(intent);
-            }
-        });
+
 
         // 현재 위치와 방위각 화면으로 전환하는 버튼 추가
         Button buttonCurLocation = findViewById(R.id.btn_open_cur_location);
