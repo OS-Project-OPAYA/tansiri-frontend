@@ -67,7 +67,6 @@ public class SearchActivity extends AppCompatActivity {
                 String endName = searchInput.getText().toString();
                 if (!endName.isEmpty()) {
                     // 현재 위치와 검색 장소를 서버로 전송
-                    //sendLocationToServer("A", "36.6256013", "127.4542717", endName, userID);
                     sendLocationToServer(currentAddress, currentLatitude, currentLongitude, endName, userID);
                 } else {
                     Toast.makeText(SearchActivity.this, "목적지를 입력하세요.", Toast.LENGTH_SHORT).show();
@@ -288,5 +287,4 @@ public class SearchActivity extends AppCompatActivity {
         finish();
     }
 }
-
 
