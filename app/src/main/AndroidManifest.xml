@@ -35,7 +35,7 @@
         <activity android:name=".WalkingRouteActivity"
             android:screenOrientation="portrait" />
         <activity android:name=".SearchActivity" />
-        <activity android:name=".test" />
+        <activity android:name=".TestActivity" />
         <activity android:name=".FavoriteActivity" />
 
 

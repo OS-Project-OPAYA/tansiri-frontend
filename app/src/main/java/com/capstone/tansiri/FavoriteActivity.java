@@ -360,4 +360,16 @@ public class FavoriteActivity extends AppCompatActivity {
             }
         });
     }
+
+    protected void onPause() {
+        super.onPause();
+        // 위치 관리자에서 위치 업데이트 해제
+        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            locationManager.removeUpdates(locationListener);
+        }
+    }
+
+
 }
