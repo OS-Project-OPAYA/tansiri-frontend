@@ -1,16 +1,26 @@
 package com.capstone.tansiri;
 
+import com.capstone.tansiri.map.ApiService;
+import com.capstone.tansiri.map.RetrofitClient;
+import com.capstone.tansiri.map.entity.Favorite;
+
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
-import android.graphics.BitmapFactory;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+
+import android.location.Location;
+
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
+
+
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -19,13 +29,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.Toast;
-
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.capstone.tansiri.map.ApiService;
-import com.capstone.tansiri.map.RetrofitClient;
-import com.capstone.tansiri.map.entity.Favorite;
 import com.google.android.gms.location.Priority;
 import com.skt.tmap.TMapPoint;
 import com.skt.tmap.TMapView;
@@ -43,15 +48,8 @@ import retrofit2.Response;
 
 
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
 
-
-
-public class WalkingRouteActivity extends AppCompatActivity implements SensorEventListener {
+public class WalkingRouteActivity extends AppCompatActivity {
 
     private TMapView tMapView; // TMapView 객체 생성
     private static final String TAG = "WalkingRoute"; // TAG 변수 정의
@@ -61,21 +59,24 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
     private Button btnWalkRouteNavi;
     private Button btnResearch;
     private Button btnFavorite;
+    private Button btnObjectRecognition;
 
     private double userLat = 0.0;
     private double userLon = 0.0;
     private float userDir = 0.0f; // 초기 방위각 값
 
     private Handler handler = new Handler(); // 핸들러 선언
-    private LocationManager locationManager;
-    private boolean isLogging = false; // 위치 로그 활성화 여부
     private Runnable logRunnable; // 위치 로그용 Runnable
-    private SensorManager sensorManager;
-    private Sensor rotationVectorSensor;
 
 
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
+
+    private SensorManager sensorManager;
+    private Sensor rotationVectorSensor;
+    private SensorEventListener sensorEventListener;
+    private boolean isNavigating = false;
+
 
 
     private String currentAddress;
@@ -88,16 +89,17 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
     private String userID;
 
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_walking_route);
 
+        //버튼 초기화
         btnWalkRouteNavi = findViewById(R.id.btnWalkRouteNavi);
         btnResearch = findViewById(R.id.btnResearch);
         btnFavorite = findViewById(R.id.btnFavorite);
+        btnObjectRecognition = findViewById(R.id.btnObjectRecognition);
+
 
         apiService = RetrofitClient.getClient().create(ApiService.class);
 
@@ -108,8 +110,6 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
 
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-
-
 
 
         currentAddress = getIntent().getStringExtra("currentAddress");
@@ -140,19 +140,37 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
         });
 
         // 위치 요청 설정
-        setupLocationRequest();
         setupLocationCallback();
+        setupLocationRequest();
 
         // 버튼 클릭 리스너 설정
         setupButtonListeners();
     }
 
     private void setInitialMapPosition() {
-        double startlat = Double.parseDouble(currentLatitude);
-        double startlon = Double.parseDouble(currentLongitude);
-        tMapView.setCenterPoint(startlat, startlon); // 초기 위치로 중심 설정
+        tMapView.setCenterPoint(userLat, userLon); // 초기 위치로 중심 설정
         tMapView.setZoomLevel(14); // 기본 줌 레벨 설정
     }
+
+    private void setUserMarker() {
+        tMapView.setCenterPoint(userLat, userLon); // 초기 위치로 중심 설정
+
+        // 기존 마커가 있는 경우 제거
+        if (tMapView.getMarkerItemFromId("userMarker") != null) {
+            tMapView.removeTMapMarkerItem("userMarker");
+        }
+
+        // 새 마커 추가
+        TMapMarkerItem marker = new TMapMarkerItem();
+        marker.setId("userMarker");
+        marker.setTMapPoint(new TMapPoint(userLat, userLon));
+        tMapView.addTMapMarkerItem(marker);
+    }
+
+
+
+
+
 
     private void drawRoute() {
         try {
@@ -187,10 +205,9 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
     }
 
     private void setupLocationRequest() {
-        LocationRequest locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000) // 5초 간격
-                .setMaxUpdates(10) // 최대 업데이트 수 설정 (옵션)
+        LocationRequest locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000) // 5초 간격
                 .setMinUpdateIntervalMillis(2000) // 최소 업데이트 간격 (2초)
-                .setWaitForAccurateLocation(true) // 보다 정확한 위치를 기다리도록 설정
+                .setWaitForAccurateLocation(false) // 보다 정확한 위치를 기다리도록 설정
                 .build(); // 빌더를 호출하여 LocationRequest 객체를 생성
 
         try {
@@ -216,8 +233,6 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
                     if (location != null) {
                         userLat = location.getLatitude();
                         userLon = location.getLongitude();
-                        // 위치를 TMapView의 중심으로 설정
-                        tMapView.setCenterPoint(location.getLongitude(), location.getLatitude(), true);
                     }
                 } else {
                     Log.e("WalkingRouteActivity", "TMapView가 초기화되지 않았습니다.");
@@ -227,8 +242,8 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
     }
 
 
-
     private void setupButtonListeners() {
+        // 목적지 재검색 버튼 리스너
         btnResearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -236,6 +251,7 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
             }
         });
 
+        // 즐겨찾기 등록 버튼 리스너
         btnFavorite.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -243,18 +259,44 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
             }
         });
 
+        // 도보 경로 안내 버튼 리스너
         btnWalkRouteNavi.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                isLogging = !isLogging; // 버튼 클릭 시 로그 활성화/비활성화 토글
-                if (isLogging) {
+                if (!isNavigating) {
+                    // 네비게이션 시작
                     startNavigate(walkrouteResponse);
+                    btnWalkRouteNavi.setText("안내 종료"); // 버튼 텍스트 변경
+                    hideOtherButtons(); // 다른 버튼 숨기기
+                    isNavigating = true; // 네비게이션 상태 업데이트
                 } else {
-                    stopNavigate();
+                    // 네비게이션 종료
+                    stopNavigate(); // 네비게이션 중지
+                    btnWalkRouteNavi.setText("도보 경로 안내"); // 버튼 텍스트 원래대로 변경
+                    showOtherButtons(); // 다른 버튼 보이기
+                    isNavigating = false; // 네비게이션 상태 업데이트
+                    goToSearchActivity(); // 목적지 검색 창으로 이동
+                    Toast.makeText(WalkingRouteActivity.this, "경로 안내가 종료되었습니다.", Toast.LENGTH_SHORT).show();
+                    finish();
                 }
             }
         });
     }
+
+    // 다른 버튼 숨기기
+    private void hideOtherButtons() {
+        btnResearch.setVisibility(View.GONE);
+        btnFavorite.setVisibility(View.GONE);
+    }
+
+    // 다른 버튼 보이기
+    private void showOtherButtons() {
+        btnResearch.setVisibility(View.VISIBLE);
+        btnFavorite.setVisibility(View.VISIBLE);
+    }
+
+
+
 
     private void saveToFavorites() {
         Favorite favorite = new Favorite(currentAddress, destinationAddress, currentLatitude, currentLongitude, destinationLatitude, destinationLongitude, walkrouteResponse, userID);
@@ -295,9 +337,14 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
         });
     }
 
+
     private void startNavigate(String walkrouteResponse) {
         ArrayList<TMapPoint> waypoints = new ArrayList<>();
         ArrayList<String> descriptions = new ArrayList<>();
+
+        btnObjectRecognition.setVisibility(View.VISIBLE);
+
+
         try {
             JSONObject jsonResponse = new JSONObject(walkrouteResponse);
             JSONArray featuresArray = jsonResponse.getJSONArray("features");
@@ -313,8 +360,6 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
 
                     String description = feature.getJSONObject("properties").getString("description");
                     descriptions.add(description);
-
-                    Log.d(TAG, "Waypoint " + (i + 1) + " - Lat: " + lat + ", Lon: " + lon + ", Description: " + description);
                 }
             }
         } catch (Exception e) {
@@ -322,9 +367,11 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
             return;
         }
 
+        setupSensorListener(); // 방위각 감지 시작
+
+
         logRunnable = new Runnable() {
-            private int currentWaypointIndex = 1;
-            private boolean descriptionShown = false;
+            private int currentWaypointIndex = 0;
 
             @Override
             public void run() {
@@ -338,49 +385,29 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
                 double waypointLat = currentWaypoint.getLatitude();
                 double waypointLon = currentWaypoint.getLongitude();
 
-                // 방위각 계산
-                double angleToWaypoint = calculateBearing(userLat, userLon, waypointLat, waypointLon);
-                float directionToWaypoint = (float) (angleToWaypoint - userDir);
-                if (directionToWaypoint < 0) {
-                    directionToWaypoint += 360;
-                }
-
-                String directionMessage;
-                if (directionToWaypoint < 30 || directionToWaypoint > 330) {
-                    directionMessage = "Straight";
-                } else if (directionToWaypoint > 30 && directionToWaypoint < 150) {
-                    directionMessage = "Turn Right";
-                } else {
-                    directionMessage = "Turn Left";
-                }
-
-                // 현재 위치와 다음 거점까지의 거리 계산
                 double distanceToWaypoint = calculateDistance(userLat, userLon, waypointLat, waypointLon);
 
-                // 방위각, 남은 거리 포함한 안내 메시지 생성
-                String message = directionMessage +
-                        " - Distance: " + String.format("%.2f", distanceToWaypoint) + "m";
-                Toast.makeText(WalkingRouteActivity.this, message, Toast.LENGTH_SHORT).show();
+                setUserMarker(); // 위치 로그가 업데이트될 때마다 마커 설정
 
-                if (currentWaypointIndex == 0 && !descriptionShown) {
-                    Toast.makeText(WalkingRouteActivity.this, descriptions.get(currentWaypointIndex), Toast.LENGTH_SHORT).show();
-                    descriptionShown = true;
-                }
 
                 if (isCloseToWaypoint(userLat, userLon, waypointLat, waypointLon)) {
-                    if (currentWaypointIndex < descriptions.size() - 1) {
-                        Toast.makeText(WalkingRouteActivity.this, descriptions.get(currentWaypointIndex + 1), Toast.LENGTH_SHORT).show();
-                    }
+                    Toast.makeText(WalkingRouteActivity.this, descriptions.get(currentWaypointIndex), Toast.LENGTH_SHORT).show();
                     currentWaypointIndex++;
-                    descriptionShown = false;
+                } else {
+                    double targetBearing = calculateBearing(userLat, userLon, waypointLat, waypointLon);
+                    String directionMessage = getDirectionMessage(userDir, targetBearing);
+                    String distanceMessage = String.format("다음 거점까지의 거리: %.2f m | 방향: %s |", distanceToWaypoint, directionMessage);
+                    Toast.makeText(WalkingRouteActivity.this, distanceMessage, Toast.LENGTH_SHORT).show();
                 }
 
-                handler.postDelayed(this, 5000);
+                handler.postDelayed(this, 3000); // 3초마다 업데이트
             }
         };
+
         handler.post(logRunnable);
         Toast.makeText(this, "위치 로그 시작", Toast.LENGTH_SHORT).show();
     }
+
 
     // 위치 로그 중단 메서드
     private void stopNavigate() {
@@ -388,22 +415,15 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
             handler.removeCallbacks(logRunnable); // Runnable 중단
         }
         Toast.makeText(this, "위치 로그 중단", Toast.LENGTH_SHORT).show();
+        btnObjectRecognition.setVisibility(View.GONE);
     }
-
-
-
 
 
     // 두 좌표 간의 거리 계산 (단위: 미터)
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371000; // 지구 반지름 (미터 단위)
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
+        float[] results = new float[1];
+        Location.distanceBetween(lat1, lon1, lat2, lon2, results);
+        return results[0];
     }
 
 
@@ -411,76 +431,76 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
     private boolean isCloseToWaypoint(double currentLat, double currentLon, double waypointLat, double waypointLon) {
         float[] results = new float[1];
         Location.distanceBetween(currentLat, currentLon, waypointLat, waypointLon, results);
-        return results[0] < 10; // 10m 이내에 있는 경우
-    }
-
-    // 방위각을 계산하는 메서드
-    private double calculateBearing(double lat1, double lon1, double lat2, double lon2) {
-        double deltaLon = Math.toRadians(lon2 - lon1);
-        double y = Math.sin(deltaLon) * Math.cos(Math.toRadians(lat2));
-        double x = Math.cos(Math.toRadians(lat1)) * Math.sin(Math.toRadians(lat2)) -
-                Math.sin(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * Math.cos(deltaLon);
-        double bearing = Math.atan2(y, x);
-        return (Math.toDegrees(bearing) + 360) % 360; // 0 ~ 360 사이의 값으로 변환
+        return results[0] < 5; // 10m 이내에 있는 경우
     }
 
 
-    // SensorEventListener 구현
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
-            float[] rotationMatrix = new float[9];
-            float[] orientation = new float[3];
+    private double calculateBearing(double startLat, double startLon, double endLat, double endLon) {
+        // 위도와 경도를 라디안으로 변환
+        double startLatRad = Math.toRadians(startLat);
+        double endLatRad = Math.toRadians(endLat);
+        double deltaLon = Math.toRadians(endLon - startLon);
 
-            SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
-            SensorManager.getOrientation(rotationMatrix, orientation);
+        // 방위각 계산
+        double y = Math.sin(deltaLon) * Math.cos(endLatRad);
+        double x = Math.cos(startLatRad) * Math.sin(endLatRad) - Math.sin(startLatRad) * Math.cos(endLatRad) * Math.cos(deltaLon);
 
-            // 방위각 계산 (y축 기준 회전각)
-            userDir = (float) Math.toDegrees(orientation[0]); // 변경: orientation[1] 사용
-            if (userDir < 0) {
-                userDir += 360; // 0 ~ 360 사이의 값으로 변환
+        // 방위각을 도 단위로 변환하고 0도에서 360도 범위로 조정
+        double bearing = Math.toDegrees(Math.atan2(y, x));
+        return (bearing + 360) % 360;
+    }
+
+
+
+    // 사용자의 현재 방위각과 목표 방위각을 비교하여 방향 결정
+    private String getDirectionMessage(double userDir, double targetBearing) {
+        double angleDifference = (targetBearing - userDir + 360) % 360;
+
+        if (angleDifference < 15 || angleDifference > 345) {
+            return "직진";
+        } else if (angleDifference >= 15 && angleDifference < 180) {
+            return "우회전";
+        } else {
+            return "좌회전";
+        }
+    }
+
+    // 방위각 업데이트 리스너 설정
+    private void setupSensorListener() {
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        rotationVectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+
+        sensorEventListener = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent event) {
+                if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
+                    float[] rotationMatrix = new float[9];
+                    SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
+
+                    // 축을 재조정하여 휴대폰을 세운 상태에서도 방위각이 정확히 계산되도록 설정
+                    float[] adjustedRotationMatrix = new float[9];
+                    SensorManager.remapCoordinateSystem(rotationMatrix, SensorManager.AXIS_X, SensorManager.AXIS_Z, adjustedRotationMatrix);
+
+                    float[] orientation = new float[3];
+                    SensorManager.getOrientation(adjustedRotationMatrix, orientation);
+
+                    userDir = (float) Math.toDegrees(orientation[0]);
+                    if (userDir < 0) {
+                        userDir += 360;
+                    }
+                }
             }
-        }
+
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+        };
+
+        sensorManager.registerListener(sensorEventListener, rotationVectorSensor, SensorManager.SENSOR_DELAY_UI);
     }
 
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        // 정확도 변화 시 처리 로직 (필요한 경우)
-        Log.d(TAG, "Sensor accuracy changed: " + accuracy);
-    }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (rotationVectorSensor != null) {
-            sensorManager.registerListener(this, rotationVectorSensor, SensorManager.SENSOR_DELAY_UI); // 센서 등록
-        }
-    }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
 
-        // Unregister the sensor listener to save battery
-        sensorManager.unregisterListener(this);
-
-        // Optionally stop location updates
-        fusedLocationClient.removeLocationUpdates(locationCallback);
-
-        // If you want to free up the TMapView resources, you can keep it as it is
-        if (tMapView != null) {
-            tMapView = null; // This may not be necessary, just ensure you handle it in onDestroy
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        fusedLocationClient.removeLocationUpdates(locationCallback);
-        if (tMapView != null) {
-            tMapView = null;
-        }
-    }
 
 
     // WalkingRoute 화면으로 이동하는 메서드
@@ -490,4 +510,35 @@ public class WalkingRouteActivity extends AppCompatActivity implements SensorEve
         finish();
     }
 
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (sensorManager != null && sensorEventListener != null) {
+            sensorManager.unregisterListener(sensorEventListener);
+        }
+
+        // WalkingRouteActivity 화면에서 나갈 때, 안내가 진행 중이면 종료
+        if (isNavigating) {
+            stopNavigate();
+        }
+    }
+
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        fusedLocationClient.removeLocationUpdates(locationCallback);
+        if (tMapView != null) {
+            tMapView = null;
+        }
+    }
 }
