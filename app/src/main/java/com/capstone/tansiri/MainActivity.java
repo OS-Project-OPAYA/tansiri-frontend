@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -17,7 +18,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         // 현재 위치와 방위각 화면으로 전환하는 버튼 추가
-        Button buttonCurLocation = findViewById(R.id.btn_open_cur_location);
+        ImageButton buttonCurLocation = findViewById(R.id.btn_open_cur_location);
         buttonCurLocation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -27,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // 추가 버튼 설정
-        Button buttonA = findViewById(R.id.btn_a);
+        ImageButton buttonA = findViewById(R.id.btn_a);
         buttonA.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -36,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button buttonFavorite = findViewById(R.id.btn_open_favorite);
+        ImageButton buttonFavorite = findViewById(R.id.btn_open_favorite);
         buttonFavorite.setOnClickListener((new View.OnClickListener() {
             @Override
             public void onClick(View v) {

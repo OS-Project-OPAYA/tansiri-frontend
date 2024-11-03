@@ -148,7 +148,9 @@ public class WalkingRouteActivity extends AppCompatActivity {
     }
 
     private void setInitialMapPosition() {
-        tMapView.setCenterPoint(userLat, userLon); // 초기 위치로 중심 설정
+        Double clat = Double.parseDouble(currentLatitude);
+        Double clon = Double.parseDouble(currentLongitude);
+        tMapView.setCenterPoint(clat, clon); // 초기 위치로 중심 설정
         tMapView.setZoomLevel(14); // 기본 줌 레벨 설정
     }
 
