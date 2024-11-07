@@ -8,6 +8,15 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+    <!-- 카메라 및 진동 권한 선언 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+
+    <!-- 카메라 하드웨어 기능 사용 명시 -->
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
 
 
     <application
@@ -23,8 +32,14 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
+
         <activity
-            android:name=".MainActivity"
+            android:name=".Activity.MainActivity"
+            android:exported="true">
+        </activity>
+
+        <activity
+            android:name=".Activity.SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -32,11 +47,12 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".WalkingRouteActivity"
+
+        <activity android:name=".Activity.WalkingRouteActivity"
             android:screenOrientation="portrait" />
-        <activity android:name=".SearchActivity" />
-        <activity android:name=".TestActivity" />
-        <activity android:name=".FavoriteActivity" />
+        <activity android:name=".Activity.SearchActivity" />
+        <activity android:name=".Activity.CameraActivity" />
+        <activity android:name=".Activity.FavoriteActivity" />
 
 
 

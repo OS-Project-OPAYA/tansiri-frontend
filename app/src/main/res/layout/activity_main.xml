@@ -4,39 +4,36 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:background="@drawable/background_gradient"
     android:gravity="center"
-    android:elevation="8dp"
-    tools:context=".MainActivity">
+    android:orientation="vertical"
+    tools:context=".Activity.MainActivity">
 
     <ImageButton
-        android:id="@+id/btn_a"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:id="@+id/btnCamera"
+        android:layout_width="400dp"
+        android:layout_height="100dp"
+        android:layout_marginBottom="20dp"
         android:background="@android:color/transparent"
-        app:srcCompat="@drawable/main_camera"
-        tools:ignore="MissingConstraints"
-        tools:layout_editor_absoluteX="25dp"
-        tools:layout_editor_absoluteY="222dp"
         android:elevation="8dp"
-        android:layout_marginBottom="20dp" />
+        android:scaleType="fitCenter"
+        app:srcCompat="@drawable/main_camera" />
 
     <ImageButton
-        android:id="@+id/btn_open_cur_location"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:id="@+id/btnSearch"
+        android:layout_width="400dp"
+        android:layout_height="100dp"
         app:srcCompat="@drawable/main_search"
         android:background="@android:color/transparent"
-        android:layout_marginBottom="20dp" />
+        android:layout_marginBottom="20dp"
+        android:scaleType="fitCenter" />
 
     <ImageButton
-        android:id="@+id/btn_open_favorite"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:srcCompat="@drawable/main_bookmark"
+        android:id="@+id/btnFavorite"
+        android:layout_width="400dp"
+        android:layout_height="100dp"
+        app:srcCompat="@drawable/main_favorite"
         android:background="@android:color/transparent"
-        tools:layout_editor_absoluteX="13dp"
-        tools:layout_editor_absoluteY="349dp"
-        tools:ignore="MissingConstraints" />
+        android:scaleType="fitCenter" />
 
 </LinearLayout>

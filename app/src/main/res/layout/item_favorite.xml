@@ -15,11 +15,11 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:ellipsize="end"
-        android:fontFamily="sans-serif-medium"
+        android:fontFamily="@font/bold"
         android:maxLines="1"
         android:paddingEnd="8dp"
         android:textColor="@android:color/black"
-        android:textSize="16sp" />
+        android:textSize="20sp" />
 
     <Button
         android:id="@+id/btn_delete"
@@ -33,5 +33,6 @@
         android:textSize="16sp"
         android:backgroundTint="#40B59F"
         android:elevation="0dp"
+        android:fontFamily="@font/bold"
         app:cornerRadius="16dp"/>
 </LinearLayout>

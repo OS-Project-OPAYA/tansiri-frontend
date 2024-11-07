@@ -2,4 +2,8 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <!-- 기본 버튼 색상 -->
+    <color name="button_default_color">#40B59F</color>
+    <!-- 클릭 시 버튼 색상 -->
+    <color name="button_pressed_color">#338F76</color>
 </resources>
