@@ -106,8 +106,8 @@ public abstract class CameraActivity extends AppCompatActivity
     plusImageView = findViewById(R.id.plus);
     minusImageView = findViewById(R.id.minus);
     deviceView = findViewById(R.id.device_list);
-    deviceStrings.add("CPU");
-    deviceStrings.add("GPU");
+//    deviceStrings.add("CPU");
+    deviceStrings.add("객체 감지 시작");
 //    deviceStrings.add("NNAPI");
     deviceView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
     ArrayAdapter<String> deviceAdapter =

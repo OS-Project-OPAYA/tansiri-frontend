@@ -1,10 +1,10 @@
-Car
-GTL
-Green PTL
-Green TL C
-Pedestrian Crossing C
-Pedestrian Crossing
-Person
-RTL
-Red PTL
-Red TL C
+자동차
+초록불
+신호등 초록불
+초록불
+횡단보도
+횡단보도
+보행자
+빨간불
+신호등 빨간불
+빨간불

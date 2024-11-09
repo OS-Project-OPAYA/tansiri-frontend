@@ -5,15 +5,18 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_gravity="center_horizontal"
-    android:background="@drawable/bottom_sheet_bg"
+    android:background="#40b59f"
     android:gravity="center_horizontal"
     android:orientation="vertical"
     android:padding="8dp"
+
+
     app:behavior_hideable="true">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:layout_gravity="center">
 
         <TextView
             android:id="@+id/detectclass"
@@ -21,16 +24,18 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:text="감지된 객체"
-            android:textColor="@android:color/black" />
+            android:textColor="@android:color/black"
+            android:visibility="gone"/>
 
         <TextView
             android:id="@+id/detectedclass_info"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="240dp"
             android:layout_marginTop="10dp"
-            android:gravity="right"
-            android:text="640*480"
-            android:textColor="@android:color/black" />
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:fontFamily="@font/bold"
+            android:textSize="30sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -44,7 +49,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:text="Inference Time"
-            android:textColor="@android:color/black" />
+            android:textColor="@android:color/black"
+            android:visibility="gone"
+            />
 
         <TextView
             android:id="@+id/inference_info"
@@ -53,21 +60,24 @@
             android:layout_marginTop="10dp"
             android:gravity="right"
             android:text="640*480"
-            android:textColor="@android:color/black" />
+            android:textColor="@android:color/black"
+            android:visibility="gone"
+            />
     </LinearLayout>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1px"
         android:layout_marginTop="10dp"
-        android:background="@android:color/darker_gray" />
+        android:background="@android:color/darker_gray"
+        android:visibility="gone"/>
 
     <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_width="0.1dp"
+        android:layout_height="0.1dp"
+        android:layout_marginTop="0.1dp"
         android:orientation="horizontal"
-        android:visibility="visible">
+        android:visibility="gone">
 
         <TextView
             android:layout_width="wrap_content"
@@ -95,11 +105,13 @@
                 android:id="@+id/threads"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="10dp"
-                android:layout_marginRight="10dp"
+                android:layout_marginLeft="1dp"
+                android:layout_marginRight="1dp"
                 android:text="1"
                 android:textColor="@android:color/black"
-                android:textSize="14sp" />
+                android:textSize="14sp"
+                android:visibility="gone"
+                />
 
             <ImageView
                 android:id="@+id/plus"
@@ -113,33 +125,81 @@
         android:layout_width="match_parent"
         android:layout_height="1px"
         android:layout_marginTop="10dp"
-        android:background="@android:color/darker_gray" />
+        android:background="@android:color/darker_gray"
+        android:visibility="gone"/>
 
     <!-- TODO(b/112541284): Unhide when new NNAPI delegate is used. -->
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:visibility="gone">
 
         <ListView
             android:id="@+id/device_list"
-            android:layout_width="100dp"
-            android:layout_height="193dp" />
+            android:layout_gravity="center"
+            android:layout_width="wrap_content"
+            android:layout_height="193dp"
+            android:visibility="gone"/>
 
         <ListView
             android:id="@+id/model_list"
-            android:layout_width="match_parent"
-            android:layout_height="321dp" />
+            android:layout_width="1dp"
+            android:layout_height="1dp"
+            android:visibility="gone"/>
     </LinearLayout>
+
+
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1px"
         android:layout_marginTop="10dp"
-        android:background="@android:color/darker_gray" />
+        android:background="@android:color/darker_gray"
+        android:visibility="gone"
+        />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="10dp"
+        android:gravity="center">
+
+        <!-- 왼쪽 버튼 -->
+        <Button
+            android:id="@+id/my_button_left"
+            android:layout_width="0dp"
+            android:layout_height="81dp"
+            android:layout_marginEnd="40dp"
+            android:layout_weight="1"
+            android:backgroundTint="#FFFFFF"
+            android:fontFamily="@font/bold"
+            android:gravity="center"
+            android:padding="10dp"
+            android:text="맵"
+            android:textColor="#40b59f"
+            android:textSize="20sp" />
+
+        <!-- 오른쪽 버튼 -->
+        <Button
+            android:id="@+id/my_button_right"
+            android:layout_width="0dp"
+            android:layout_height="81dp"
+            android:layout_weight="1"
+            android:text="촬영 종료"
+            android:textSize="20sp"
+            android:textColor="#40b59f"
+            android:backgroundTint="#FFFFFF"
+            android:fontFamily="@font/bold"
+            android:gravity="center"
+            android:padding="10dp"/>
+    </LinearLayout>
 
 </LinearLayout>
+
+
     <!--    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"-->
 
 
