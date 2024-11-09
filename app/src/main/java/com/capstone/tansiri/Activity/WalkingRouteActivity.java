@@ -14,6 +14,8 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.Location;
 
 import android.hardware.Sensor;
@@ -174,10 +176,15 @@ public class WalkingRouteActivity extends AppCompatActivity {
             tMapView.removeTMapMarkerItem("userMarker");
         }
 
-        // 새 마커 추가
         TMapMarkerItem marker = new TMapMarkerItem();
         marker.setId("userMarker");
         marker.setTMapPoint(new TMapPoint(userLat, userLon));
+
+         // 마커 이미지 설정
+        Bitmap markerBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.marker1);
+        marker.setIcon(markerBitmap);
+
+        // 마커를 TMapView에 추가
         tMapView.addTMapMarkerItem(marker);
     }
 

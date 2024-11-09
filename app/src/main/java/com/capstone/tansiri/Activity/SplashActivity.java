@@ -23,7 +23,7 @@ public class SplashActivity extends AppCompatActivity {
                 startActivity(intent);
                 finish();
             }
-        },2000); // 3초 있다 메인액티비티로
+        },3000);
     }
 
     @Override

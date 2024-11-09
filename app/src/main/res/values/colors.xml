@@ -6,4 +6,5 @@
     <color name="button_default_color">#40B59F</color>
     <!-- 클릭 시 버튼 색상 -->
     <color name="button_pressed_color">#338F76</color>
+    <color name="base">#40B59F</color>
 </resources>
