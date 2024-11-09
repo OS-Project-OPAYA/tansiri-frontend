@@ -36,6 +36,9 @@ public class MainActivity extends AppCompatActivity {
 
     private ApiService apiService;
 
+    public static final float MINIMUM_CONFIDENCE_TF_OD_API = 0.3f;
+
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
         int buttonId = button.getId();
 
         if (buttonId == R.id.btnCamera) {
-            startActivity(new Intent(MainActivity.this, CameraActivity.class));
+            startActivity(new Intent(MainActivity.this, DetectorActivity.class));
         } else if (buttonId == R.id.btnSearch) {
             checkSearchAndProceed(userID);
         } else if (buttonId == R.id.btnFavorite) {
