@@ -280,6 +280,14 @@ public class WalkingRouteActivity extends AppCompatActivity {
             }
         });
 
+        btnObjectRecognition.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(new Intent(WalkingRouteActivity.this, DetectorActivity.class));
+            }
+        });
+
+
         // 도보 경로 안내 버튼 리스너
         btnWalkRouteNavi.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -556,14 +564,7 @@ public class WalkingRouteActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (sensorManager != null && sensorEventListener != null) {
-            sensorManager.unregisterListener(sensorEventListener);
-        }
 
-        // WalkingRouteActivity 화면에서 나갈 때, 안내가 진행 중이면 종료
-        if (isNavigating) {
-            stopNavigate();
-        }
     }
 
     @Override
@@ -576,6 +577,14 @@ public class WalkingRouteActivity extends AppCompatActivity {
         fusedLocationClient.removeLocationUpdates(locationCallback);
         if (tMapView != null) {
             tMapView = null;
+        }
+        if (sensorManager != null && sensorEventListener != null) {
+            sensorManager.unregisterListener(sensorEventListener);
+        }
+
+        // WalkingRouteActivity 화면에서 나갈 때, 안내가 진행 중이면 종료
+        if (isNavigating) {
+            stopNavigate();
         }
     }
 }

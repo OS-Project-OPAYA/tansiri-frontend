@@ -16,7 +16,7 @@
         android:layout_marginBottom="20dp"
         android:background="@android:color/transparent"
         android:elevation="8dp"
-        android:scaleType="fitCenter"
+        android:scaleType="centerInside"
         app:srcCompat="@drawable/main_camera" />
 
     <ImageButton
@@ -26,7 +26,7 @@
         app:srcCompat="@drawable/main_search"
         android:background="@android:color/transparent"
         android:layout_marginBottom="20dp"
-        android:scaleType="fitCenter" />
+        android:scaleType="centerInside" />
 
     <ImageButton
         android:id="@+id/btnFavorite"
@@ -34,6 +34,6 @@
         android:layout_height="100dp"
         app:srcCompat="@drawable/main_favorite"
         android:background="@android:color/transparent"
-        android:scaleType="fitCenter" />
+        android:scaleType="centerInside" />
 
 </LinearLayout>
