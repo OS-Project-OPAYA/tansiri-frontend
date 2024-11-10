@@ -23,10 +23,10 @@
         android:id="@+id/btnSearch"
         android:layout_width="400dp"
         android:layout_height="100dp"
-        app:srcCompat="@drawable/main_search"
-        android:background="@android:color/transparent"
         android:layout_marginBottom="20dp"
-        android:scaleType="fitCenter" />
+        android:background="@android:color/transparent"
+        android:scaleType="fitCenter"
+        app:srcCompat="@drawable/main_search" />
 
     <ImageButton
         android:id="@+id/btnFavorite"

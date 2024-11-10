@@ -36,15 +36,16 @@ import com.capstone.tansiri.map.entity.Start;
 import com.capstone.tansiri.map.entity.WalkRoute;
 import android.speech.tts.TextToSpeech;
 
-
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import android.widget.Button;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class FavoriteActivity extends AppCompatActivity {
 
@@ -58,6 +59,11 @@ public class FavoriteActivity extends AppCompatActivity {
     private String currentLongitude; // 현재 경도
     private String currentAddress;   // 현재 주소
     private ApiService apiService;
+
+    //클릭상태를 저장하는 변수,
+    private Map<Integer, Boolean> clickStates = new HashMap<>();
+    private Handler handler = new Handler();
+    private Map<Integer, Runnable> resetClickStateRunnables = new HashMap<>();
 
 
     @Override
@@ -105,10 +111,28 @@ public class FavoriteActivity extends AppCompatActivity {
                 tts.setLanguage(Locale.KOREAN);
             }
         });
-
+        initialize();
 
         // API를 통해 즐겨찾기 목록 가져오기
         loadFavorites();
+    }
+    private void initialize() {
+        tts = new TextToSpeech(this, status -> {
+            if (status != TextToSpeech.ERROR) {
+                tts.setLanguage(Locale.KOREAN);
+            }
+        });
+
+        apiService = RetrofitClient.getClient().create(ApiService.class);
+        userID = Util.getDeviceID(getApplicationContext());
+
+        recyclerView = findViewById(R.id.recyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(recyclerView.getContext(), LinearLayoutManager.VERTICAL);
+        dividerItemDecoration.setDrawable(ContextCompat.getDrawable(this, R.drawable.divider));
+        recyclerView.addItemDecoration(dividerItemDecoration);
+
+        requestLocationPermission();
     }
 
     private void requestLocationPermission() {
@@ -181,8 +205,8 @@ public class FavoriteActivity extends AppCompatActivity {
     // 클릭 상태와 타이머를 위한 변수 선언
     // 클릭 상태와 타이머를 위한 변수 선언
     boolean isFirstClick = false;
-    Handler handler = new Handler();
-    Runnable resetClickStateRunnable; // Runnable 변수 미리 선언
+//    Handler handler = new Handler();
+//    Runnable resetClickStateRunnable; // Runnable 변수 미리 선언
 
     private void loadFavorites() {
         ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
@@ -199,22 +223,27 @@ public class FavoriteActivity extends AppCompatActivity {
                                 showDeleteConfirmationDialog(favorite);
                             },
                             favorite -> {
+                                int favoriteId = Math.toIntExact(favorite.getId()); // 각 즐겨찾기의 고유 ID
+
+                                // 해당 항목의 상태를 가져오고 없으면 초기화
+                                boolean isFirstClick = clickStates.getOrDefault(favoriteId, false);
+
                                 if (isFirstClick) { // 두 번째 클릭 시 실행
-                                    // TTS로 목적지 안내 후 서버로 전송
                                     tts.speak("경로를 탐색중입니다", TextToSpeech.QUEUE_FLUSH, null, null);
                                     sendLocationToServer(currentAddress, currentLatitude, currentLongitude, favorite.getEndName(), userID);
 
                                     // 상태 초기화
-                                    isFirstClick = false;
-                                    handler.removeCallbacks(resetClickStateRunnable);
+                                    clickStates.put(favoriteId, false);
+                                    handler.removeCallbacks(resetClickStateRunnables.get(favoriteId));
 
                                 } else { // 첫 번째 클릭 시 TTS 안내
                                     tts.speak(favorite.getEndName(), TextToSpeech.QUEUE_FLUSH, null, null);
-                                    isFirstClick = true;
+                                    clickStates.put(favoriteId, true);
 
                                     // 클릭 상태 초기화: 2초 안에 두 번 클릭해야 함
-                                    resetClickStateRunnable = () -> isFirstClick = false;
-                                    handler.postDelayed(resetClickStateRunnable, 300); // 2초 후 상태 초기화
+                                    Runnable resetRunnable = () -> clickStates.put(favoriteId, false);
+                                    resetClickStateRunnables.put(favoriteId, resetRunnable);
+                                    handler.postDelayed(resetRunnable, 2000); // 2초 후 상태 초기화
                                 }
                             });
                     recyclerView.setAdapter(favoriteAdapter);
