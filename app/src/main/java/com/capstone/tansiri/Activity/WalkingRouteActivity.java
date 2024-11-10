@@ -156,6 +156,12 @@ public class WalkingRouteActivity extends AppCompatActivity {
         // 위치 요청 설정
         setupLocationCallback();
         setupLocationRequest();
+        tts = new TextToSpeech(this, status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                tts.setLanguage(Locale.KOREAN);
+            }
+        });
+
 
         // 버튼 클릭 리스너 설정
         setupButtonListeners();
@@ -261,6 +267,9 @@ public class WalkingRouteActivity extends AppCompatActivity {
             }
         };
     }
+    private int researchClickCount = 0;
+    private int favoriteClickCount = 0;
+    private static final long DOUBLE_CLICK_INTERVAL = 500; // 더블 클릭 감지 시간 (밀리초)
 
 
     private void setupButtonListeners() {
@@ -268,7 +277,19 @@ public class WalkingRouteActivity extends AppCompatActivity {
         btnResearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                goToSearchActivity();
+                researchClickCount++;
+
+                new Handler().postDelayed(() -> {
+                    if (researchClickCount == 1) {
+                        // 한 번 클릭 - "목적지 재검색" TTS 출력
+                        tts.speak("목적지 재검색", TextToSpeech.QUEUE_FLUSH, null, null);
+                    } else if (researchClickCount == 2) {
+                        // 두 번 클릭 - 재검색 함수 실행
+                        goToSearchActivity();
+                    }
+                    // 클릭 수 초기화
+                    researchClickCount = 0;
+                }, DOUBLE_CLICK_INTERVAL);
             }
         });
 
@@ -276,7 +297,20 @@ public class WalkingRouteActivity extends AppCompatActivity {
         btnFavorite.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                saveToFavorites();
+                favoriteClickCount++;
+
+                new Handler().postDelayed(() -> {
+                    if (favoriteClickCount == 1) {
+                        // 한 번 클릭 - "즐겨찾기 등록" TTS 출력
+                        tts.speak("즐겨찾기에 등록하려면 두번 연속 클릭하세요", TextToSpeech.QUEUE_FLUSH, null, null);
+                    } else if (favoriteClickCount == 2) {
+                        // 두 번 클릭 - 즐겨찾기 등록 함수 실행
+                        saveToFavorites();
+                        tts.speak("즐겨찾기에 등록하였습니다", TextToSpeech.QUEUE_FLUSH, null, null);
+                    }
+                    // 클릭 수 초기화
+                    favoriteClickCount = 0;
+                }, DOUBLE_CLICK_INTERVAL);
             }
         });
 
