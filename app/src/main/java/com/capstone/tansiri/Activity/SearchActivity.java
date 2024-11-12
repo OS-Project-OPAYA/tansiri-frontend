@@ -1,6 +1,7 @@
 package com.capstone.tansiri.Activity;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
@@ -10,6 +11,8 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.speech.RecognizerIntent;
 import android.util.Log;
 import android.view.View;
@@ -60,11 +63,17 @@ public class SearchActivity extends AppCompatActivity {
     private boolean isFirstClick = false;
     private Handler handler = new Handler();
     private Runnable resetClickStateRunnable;
+    private Vibrator vibrator;
+    private long lastClickTime = 0;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search);
+
+
 
         // 고유 기기 ID 가져오기
         userID = Util.getDeviceID(getApplicationContext());
@@ -82,21 +91,54 @@ public class SearchActivity extends AppCompatActivity {
         // 위치 권한 요청
         requestLocationPermission();
         //TTS
+
         tts = new TextToSpeech(this, status -> {
-            if (status != TextToSpeech.ERROR) {
-                tts.setLanguage(Locale.KOREAN);
+            if (status == TextToSpeech.SUCCESS) {
+                tts.setLanguage(Locale.KOREAN); // 한국어로 설정
+                tts.speak("목적지 검색 화면입니다.", TextToSpeech.QUEUE_FLUSH, null, null);
+            } else {
             }
         });
-        //STT
-        sttButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startSTT();
+
+
+        // STT (음성 인식)
+        sttButton.setOnClickListener(v -> {
+            // 진동 추가 (버튼 클릭 시 진동 효과)
+            vibrator = (Vibrator) v.getContext().getSystemService(Context.VIBRATOR_SERVICE);
+            if (vibrator != null && vibrator.hasVibrator()) {
+                vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)); // 0.1초 진동
             }
 
-            private void startSTT() {
+            // 버튼 클릭 시 효과 추가 (버튼 크기 작아짐)
+            v.setScaleX(0.95f);
+            v.setScaleY(0.95f);
+
+            // 현재 시간 가져오기
+            long currentTime = System.currentTimeMillis();
+
+            // 두 번 클릭 인식 (0.3초 이내에 두 번 클릭 시 음성 인식 실행)
+            if (currentTime - lastClickTime < 300) {
+                // 진행 중인 TTS 멈춤
+                if (tts.isSpeaking()) {
+                    tts.stop(); // 현재 진행 중인 TTS를 중지
+                }
+                startSTT(); // 두 번째 클릭 시 음성 인식 실행
+            } else {
+                // 첫 번째 클릭 시에는 TTS로 안내 음성 출력
+                tts.speak("음성 인식을 하시려면 두 번 클릭하세요", TextToSpeech.QUEUE_FLUSH, null, null);
             }
+
+            // 마지막 클릭 시간 업데이트
+            lastClickTime = currentTime;
+
+            // 버튼이 눌린 후 잠시 후에 원래 크기로 복원
+            v.postDelayed(() -> {
+                v.setScaleX(1.0f);
+                v.setScaleY(1.0f);
+            }, 200);
         });
+
+
         sttLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK) {
                 Intent data = result.getData();
@@ -104,21 +146,28 @@ public class SearchActivity extends AppCompatActivity {
                     ArrayList<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
                     if (results != null && !results.isEmpty()) {
                         String recognizedText = results.get(0);
-                        searchInput.setText(recognizedText);
+                        searchInput.setText(recognizedText); // 인식된 텍스트 입력
                     }
                 }
             }
         });
-        sttButton.setOnClickListener(v -> startSTT());
 
 
         searchButton.setOnClickListener(v -> {
+            vibrator = (Vibrator) v.getContext().getSystemService(Context.VIBRATOR_SERVICE);
+
             // 버튼이 눌렸을 때 작아지게 설정
             v.setScaleX(0.95f);
             v.setScaleY(0.95f);
 
+
+            // 진동 추가
+            if (vibrator != null && vibrator.hasVibrator()) {
+                vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)); // 0.1초 진동
+            }
+
             if (isFirstClick) {
-                tts.speak("경로를 탐색중입니다", TextToSpeech.QUEUE_FLUSH, null, null);
+                tts.speak("로딩 중", TextToSpeech.QUEUE_FLUSH, null, null);
 
                 if (currentLatitude != null && currentLongitude != null) {
                     String endName = searchInput.getText().toString();
@@ -148,6 +197,7 @@ public class SearchActivity extends AppCompatActivity {
                 v.setScaleY(1.0f);
             }, 200);
         });
+
     }
 
 
@@ -330,7 +380,8 @@ public class SearchActivity extends AppCompatActivity {
                     String res = walkRoute.getResponse();
 
                     if (res.length() > 600000) {
-                        Toast.makeText(SearchActivity.this, "현위치에서 너무 먼 거리에 있습니다.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(SearchActivity.this, "경로 안내 제한", Toast.LENGTH_SHORT).show();
+                        tts.speak("현위치에서 너무 먼 거리에 있거나 해당 목적지가 너무 많습니다", TextToSpeech.QUEUE_FLUSH, null, null);
                         return;
                     }
 

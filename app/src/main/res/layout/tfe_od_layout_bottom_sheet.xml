@@ -30,11 +30,11 @@
         <TextView
             android:id="@+id/detectedclass_info"
             android:layout_width="match_parent"
-            android:layout_height="240dp"
+            android:layout_height="193dp"
             android:layout_marginTop="10dp"
+            android:fontFamily="@font/bold"
             android:gravity="center"
             android:textColor="#FFFFFF"
-            android:fontFamily="@font/bold"
             android:textSize="30sp" />
     </LinearLayout>
 
@@ -162,26 +162,25 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="171dp"
+        android:gravity="center"
         android:orientation="horizontal"
-        android:padding="10dp"
-        android:gravity="center">
-
+        android:padding="10dp">
 
 
         <!-- 오른쪽 버튼 -->
         <Button
             android:id="@+id/btn_camera_finish"
             android:layout_width="0dp"
-            android:layout_height="81dp"
+            android:layout_height="153dp"
             android:layout_weight="1"
-            android:text="촬영 종료"
-            android:textSize="20sp"
-            android:textColor="#40b59f"
             android:backgroundTint="#FFFFFF"
             android:fontFamily="@font/bold"
             android:gravity="center"
-            android:padding="10dp"/>
+            android:padding="10dp"
+            android:text="촬영 종료"
+            android:textColor="#40b59f"
+            android:textSize="35sp" />
     </LinearLayout>
 
 </LinearLayout>

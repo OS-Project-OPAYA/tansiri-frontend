@@ -1,6 +1,7 @@
 package com.capstone.tansiri.Activity;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -11,6 +12,8 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -34,11 +37,13 @@ import com.capstone.tansiri.map.entity.Favorite;
 import com.capstone.tansiri.map.entity.Poi;
 import com.capstone.tansiri.map.entity.Start;
 import com.capstone.tansiri.map.entity.WalkRoute;
+
 import android.speech.tts.TextToSpeech;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+
 import android.widget.Button;
 
 import java.io.IOException;
@@ -59,6 +64,9 @@ public class FavoriteActivity extends AppCompatActivity {
     private String currentLongitude; // 현재 경도
     private String currentAddress;   // 현재 주소
     private ApiService apiService;
+    private long lastFavoriteClickTime = 0;
+    private static final int DOUBLE_CLICK_INTERVAL = 300; // 두 번 클릭 인식 시간 (ms)
+    private Vibrator vibrator;
 
     //클릭상태를 저장하는 변수,
     private Map<Integer, Boolean> clickStates = new HashMap<>();
@@ -70,29 +78,42 @@ public class FavoriteActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_favorite);
-        tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-                if (status == TextToSpeech.SUCCESS) {
-                    int result = tts.setLanguage(Locale.KOREA);
-                    if (result == TextToSpeech.ERROR) {
-                        // 언어 설정 실패
-                    }
-                }
-            }
-        });
 
         apiService = RetrofitClient.getClient().create(ApiService.class);
 
 
         Button addFavoriteButton = findViewById(R.id.btn_add_favorite);
-        addFavoriteButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // SearchActivity로 이동
+
+        // 즐겨찾기 추가 버튼 리스너
+        addFavoriteButton.setOnClickListener(view -> {
+            vibrator = (Vibrator) view.getContext().getSystemService(Context.VIBRATOR_SERVICE);
+
+            applyButtonEffect(view, vibrator); // 버튼 효과 및 진동 추가
+
+            // 현재 시간 저장
+            long currentTime = System.currentTimeMillis();
+
+            // 두 번 클릭 체크
+            if (currentTime - lastFavoriteClickTime < DOUBLE_CLICK_INTERVAL) {
+                // 두 번째 클릭 시 TTS 종료 및 SearchActivity로 이동
+                if (tts != null && tts.isSpeaking()) {
+                    tts.stop();
+                }
                 Intent intent = new Intent(FavoriteActivity.this, SearchActivity.class);
                 startActivity(intent);
+            } else {
+                // 첫 번째 클릭 시 TTS 안내
+                tts.speak("즐겨찾기를 추가하시려면 두 번 연속 클릭하세요", TextToSpeech.QUEUE_FLUSH, null, null);
             }
+
+            // 마지막 클릭 시간 갱신
+            lastFavoriteClickTime = currentTime;
+
+            // 버튼이 눌린 후 잠시 후에 원래 크기로 복원
+            view.postDelayed(() -> {
+                view.setScaleX(1.0f);
+                view.setScaleY(1.0f);
+            }, 200);
         });
 
         userID = Util.getDeviceID(getApplicationContext());
@@ -102,7 +123,6 @@ public class FavoriteActivity extends AppCompatActivity {
         DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(recyclerView.getContext(), LinearLayoutManager.VERTICAL);
         dividerItemDecoration.setDrawable(ContextCompat.getDrawable(this, R.drawable.divider));
         recyclerView.addItemDecoration(dividerItemDecoration);
-
 
 
         requestLocationPermission();
@@ -115,11 +135,30 @@ public class FavoriteActivity extends AppCompatActivity {
 
         // API를 통해 즐겨찾기 목록 가져오기
         loadFavorites();
+
+
     }
+
+
+    private void applyButtonEffect(View view, Vibrator vibrator) {
+        // 버튼이 눌렸을 때 작아지게 설정
+        view.setScaleX(0.95f);
+        view.setScaleY(0.95f);
+
+        // 진동 추가
+        if (vibrator != null && vibrator.hasVibrator()) {
+            vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)); // 0.1초 진동
+        }
+    }
+
+
+
+
     private void initialize() {
         tts = new TextToSpeech(this, status -> {
             if (status != TextToSpeech.ERROR) {
                 tts.setLanguage(Locale.KOREAN);
+                tts.speak("즐겨찾기 화면입니다.", TextToSpeech.QUEUE_FLUSH, null, null);
             }
         });
 
@@ -193,20 +232,18 @@ public class FavoriteActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) { }
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+        }
 
         @Override
-        public void onProviderEnabled(String provider) { }
+        public void onProviderEnabled(String provider) {
+        }
 
         @Override
-        public void onProviderDisabled(String provider) { }
+        public void onProviderDisabled(String provider) {
+        }
     };
 
-    // 클릭 상태와 타이머를 위한 변수 선언
-    // 클릭 상태와 타이머를 위한 변수 선언
-    boolean isFirstClick = false;
-//    Handler handler = new Handler();
-//    Runnable resetClickStateRunnable; // Runnable 변수 미리 선언
 
     private void loadFavorites() {
         ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
@@ -219,17 +256,54 @@ public class FavoriteActivity extends AppCompatActivity {
                     List<Favorite> favorites = response.body();
                     favoriteAdapter = new FavoriteAdapter(favorites,
                             favorite -> {
-                                // 삭제 버튼 클릭 시 확인 대화 상자 표시
-                                showDeleteConfirmationDialog(favorite);
-                            },
-                            favorite -> {
+                                // 진동 효과 추가
+                                Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                                if (vibrator != null && vibrator.hasVibrator()) {
+                                    vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)); // 0.1초 진동
+                                }
+
+                                // 두 번 클릭 상태 확인 (클릭 상태 추적)
                                 int favoriteId = Math.toIntExact(favorite.getId()); // 각 즐겨찾기의 고유 ID
+                                boolean isFirstClick = clickStates.getOrDefault(favoriteId, false);
+
+                                if (isFirstClick) { // 두 번째 클릭 시 삭제 실행
+                                    // TTS 안내
+                                    tts.speak("즐겨찾기가 삭제되었습니다.", TextToSpeech.QUEUE_FLUSH, null, null);
+
+                                    // 즐겨찾기 삭제
+                                    deleteFavorite(favorite.getId());
+
+                                    // 상태 초기화
+                                    clickStates.put(favoriteId, false);
+                                    handler.removeCallbacks(resetClickStateRunnables.get(favoriteId));
+
+                                } else { // 첫 번째 클릭 시 TTS 안내
+                                    tts.speak("삭제하시려면 두번 연속 클릭해주세요", TextToSpeech.QUEUE_FLUSH, null, null);
+                                    clickStates.put(favoriteId, true);
+
+                                    // 클릭 상태 초기화: 2초 안에 두 번 클릭해야 함
+                                    Runnable resetRunnable = () -> clickStates.put(favoriteId, false);
+                                    resetClickStateRunnables.put(favoriteId, resetRunnable);
+                                    handler.postDelayed(resetRunnable, 2000); // 2초 후 상태 초기화
+                                }
+
+                            },
+
+                            favorite -> {
+                                Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+                                int favoriteId = Math.toIntExact(favorite.getId()); // 각 즐겨찾기의 고유 ID
+
+                                // 진동 효과 추가
+                                if (vibrator != null && vibrator.hasVibrator()) {
+                                    vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)); // 0.1초 진동
+                                }
 
                                 // 해당 항목의 상태를 가져오고 없으면 초기화
                                 boolean isFirstClick = clickStates.getOrDefault(favoriteId, false);
 
                                 if (isFirstClick) { // 두 번째 클릭 시 실행
-                                    tts.speak("경로를 탐색중입니다", TextToSpeech.QUEUE_FLUSH, null, null);
+                                    tts.speak("로딩 중", TextToSpeech.QUEUE_FLUSH, null, null);
                                     sendLocationToServer(currentAddress, currentLatitude, currentLongitude, favorite.getEndName(), userID);
 
                                     // 상태 초기화
@@ -343,6 +417,7 @@ public class FavoriteActivity extends AppCompatActivity {
                 } else {
                     Log.e("API_ERROR", "Error: " + response.errorBody());
                     Toast.makeText(FavoriteActivity.this, "경로 생성 실패", Toast.LENGTH_SHORT).show();
+                    tts.speak("다시 클릭해주세요", TextToSpeech.QUEUE_FLUSH, null, null);
                 }
             }
 
@@ -452,6 +527,7 @@ public class FavoriteActivity extends AppCompatActivity {
             locationManager.removeUpdates(locationListener);
         }
     }
+
     @Override
     protected void onDestroy() {
         if (tts != null) {

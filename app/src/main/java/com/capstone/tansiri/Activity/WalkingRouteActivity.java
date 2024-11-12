@@ -27,6 +27,8 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -35,6 +37,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.location.Priority;
+import com.google.android.material.snackbar.Snackbar;
 import com.skt.tmap.TMapPoint;
 import com.skt.tmap.TMapView;
 import com.skt.tmap.overlay.TMapMarkerItem;
@@ -94,6 +97,12 @@ public class WalkingRouteActivity extends AppCompatActivity {
     private String walkrouteResponse;
     private String userID;
 
+    private Integer totalTime;
+    private Integer totalDistance;
+    private String distanceMessage;
+
+    private Snackbar snackbar;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -136,6 +145,7 @@ public class WalkingRouteActivity extends AppCompatActivity {
         LinearLayout linearLayoutTmap = findViewById(R.id.linearLayoutTmap);
         linearLayoutTmap.addView(tMapView);
 
+
         // TMapView 설정 및 경로 그리기
         tMapView.setOnMapReadyListener(new TMapView.OnMapReadyListener() {
             @Override
@@ -144,6 +154,14 @@ public class WalkingRouteActivity extends AppCompatActivity {
                 drawRoute();
             }
         });
+
+
+
+        // 위치 요청 설정
+        setupLocationCallback();
+        setupLocationRequest();
+
+
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
                 tts.setLanguage(Locale.KOREAN); // 한국어로 설정
@@ -153,14 +171,6 @@ public class WalkingRouteActivity extends AppCompatActivity {
             }
         });
 
-        // 위치 요청 설정
-        setupLocationCallback();
-        setupLocationRequest();
-        tts = new TextToSpeech(this, status -> {
-            if (status == TextToSpeech.SUCCESS) {
-                tts.setLanguage(Locale.KOREAN);
-            }
-        });
 
 
         // 버튼 클릭 리스너 설정
@@ -171,7 +181,7 @@ public class WalkingRouteActivity extends AppCompatActivity {
         Double clat = Double.parseDouble(currentLatitude);
         Double clon = Double.parseDouble(currentLongitude);
         tMapView.setCenterPoint(clat, clon); // 초기 위치로 중심 설정
-        tMapView.setZoomLevel(14); // 기본 줌 레벨 설정
+        tMapView.setZoomLevel(17); // 기본 줌 레벨 설정
     }
 
     private void setUserMarker() {
@@ -187,7 +197,7 @@ public class WalkingRouteActivity extends AppCompatActivity {
         marker.setTMapPoint(new TMapPoint(userLat, userLon));
 
          // 마커 이미지 설정
-        Bitmap markerBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.marker1);
+        Bitmap markerBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.current_location_icon);
         marker.setIcon(markerBitmap);
 
         // 마커를 TMapView에 추가
@@ -205,6 +215,88 @@ public class WalkingRouteActivity extends AppCompatActivity {
             JSONObject jsonResponse = new JSONObject(walkrouteResponse);
             JSONArray featuresArray = jsonResponse.getJSONArray("features");
 
+            // 출발지와 목적지 마커를 먼저 추가
+            TMapPoint startPoint = null;
+            TMapPoint endPoint = null;
+
+            for (int i = 0; i < featuresArray.length(); i++) {
+                JSONObject feature = featuresArray.getJSONObject(i);
+                JSONObject geometry = feature.getJSONObject("geometry");
+                JSONObject properties = feature.getJSONObject("properties");
+
+                // 출발지 (pointType: "SP")
+                if (geometry.getString("type").equals("Point") && properties.getString("pointType").equals("SP")) {
+                    JSONArray coordinates = geometry.getJSONArray("coordinates");
+                    double lon = coordinates.getDouble(0);
+                    double lat = coordinates.getDouble(1);
+
+                    // 출발지 마커 추가
+                    TMapMarkerItem start = new TMapMarkerItem();
+                    start.setId("start");
+                    start.setTMapPoint(new TMapPoint(lat, lon));
+
+                    // 마커 이미지 설정
+                    Bitmap markerBitmap1 = BitmapFactory.decodeResource(getResources(), R.drawable.start_icon);
+                    start.setIcon(markerBitmap1);
+
+                    // 마커를 TMapView에 추가
+                    tMapView.addTMapMarkerItem(start);
+
+                    // 출발지 점을 pointList에 추가
+                    startPoint = new TMapPoint(lat, lon);
+                }
+
+                // 목적지 (pointType: "EP")
+                if (geometry.getString("type").equals("Point") && properties.getString("pointType").equals("EP")) {
+                    JSONArray coordinates = geometry.getJSONArray("coordinates");
+                    double lon = coordinates.getDouble(0);
+                    double lat = coordinates.getDouble(1);
+
+                    // 목적지 마커 추가
+                    TMapMarkerItem end = new TMapMarkerItem();
+                    end.setId("end");
+                    end.setTMapPoint(new TMapPoint(lat, lon));
+
+                    // 마커 이미지 설정
+                    Bitmap markerBitmap2 = BitmapFactory.decodeResource(getResources(), R.drawable.destination_icon);
+                    end.setIcon(markerBitmap2);
+
+                    // 마커를 TMapView에 추가
+                    tMapView.addTMapMarkerItem(end);
+
+                    // 목적지 점을 pointList에 추가
+                    endPoint = new TMapPoint(lat, lon);
+                }
+            }
+
+
+            // 경유지 마커 추가 (경유지는 경로에 포함하지 않음)
+            for (int i = 0; i < featuresArray.length(); i++) {
+                JSONObject feature = featuresArray.getJSONObject(i);
+                JSONObject geometry = feature.getJSONObject("geometry");
+                JSONObject properties = feature.getJSONObject("properties");
+
+                // 경유지 마커 추가 (pointType: "GP")
+                if (geometry.getString("type").equals("Point") && properties.getString("pointType").equals("GP")) {
+                    JSONArray coordinates = geometry.getJSONArray("coordinates");
+                    double lon = coordinates.getDouble(0);
+                    double lat = coordinates.getDouble(1);
+
+                    // 각 경유지 마커 추가
+                    TMapMarkerItem waypoint = new TMapMarkerItem();
+                    waypoint.setId("waypoint_" + properties.getInt("pointIndex"));
+                    waypoint.setTMapPoint(new TMapPoint(lat, lon));
+
+                    // 마커 이미지 설정
+                    Bitmap markerBitmap3 = BitmapFactory.decodeResource(getResources(), R.drawable.index_icon); // 다른 마커 이미지 사용 가능
+                    waypoint.setIcon(markerBitmap3);
+
+                    // 마커를 TMapView에 추가x`
+                    tMapView.addTMapMarkerItem(waypoint);
+                }
+            }
+
+            // LineString만 경로로 추가 (Point 연결은 제외)
             for (int i = 0; i < featuresArray.length(); i++) {
                 JSONObject feature = featuresArray.getJSONObject(i);
                 JSONObject geometry = feature.getJSONObject("geometry");
@@ -212,6 +304,7 @@ public class WalkingRouteActivity extends AppCompatActivity {
                 if (geometry.getString("type").equals("LineString")) {
                     JSONArray coordinates = geometry.getJSONArray("coordinates");
 
+                    // LineString의 점들을 pointList에 추가
                     for (int j = 0; j < coordinates.length(); j++) {
                         JSONArray coord = coordinates.getJSONArray(j);
                         if (coord.length() >= 2) {
@@ -223,13 +316,18 @@ public class WalkingRouteActivity extends AppCompatActivity {
                 }
             }
 
-            TMapPolyLine line = new TMapPolyLine("line1", pointList);
-            tMapView.addTMapPolyLine(line);
+            // 경로 라인 그리기
+            if (pointList.size() > 1) {
+                TMapPolyLine line = new TMapPolyLine("line1", pointList);
+                tMapView.addTMapPolyLine(line);
+            }
 
         } catch (Exception e) {
             Log.e(TAG, "Error parsing response JSON", e);
         }
     }
+
+
 
     private void setupLocationRequest() {
         LocationRequest locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000) // 5초 간격
@@ -247,6 +345,10 @@ public class WalkingRouteActivity extends AppCompatActivity {
             Log.e(TAG, "위치 권한 필요", e);
         }
     }
+
+
+
+
 
     private void setupLocationCallback() {
         locationCallback = new LocationCallback() {
@@ -273,84 +375,107 @@ public class WalkingRouteActivity extends AppCompatActivity {
 
 
     private void setupButtonListeners() {
-        // 목적지 재검색 버튼 리스너
-        btnResearch.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                researchClickCount++;
+        // 진동 초기화
+        Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
-                new Handler().postDelayed(() -> {
-                    if (researchClickCount == 1) {
-                        // 한 번 클릭 - "목적지 재검색" TTS 출력
-                        tts.speak("목적지 재검색", TextToSpeech.QUEUE_FLUSH, null, null);
-                    } else if (researchClickCount == 2) {
-                        // 두 번 클릭 - 재검색 함수 실행
-                        goToSearchActivity();
-                    }
-                    // 클릭 수 초기화
-                    researchClickCount = 0;
-                }, DOUBLE_CLICK_INTERVAL);
-            }
+        // 목적지 재검색 버튼 리스너
+        btnResearch.setOnClickListener(view -> {
+            applyButtonEffect(view, vibrator); // 버튼 효과 및 진동 추가
+
+            researchClickCount++;
+            new Handler().postDelayed(() -> {
+                if (researchClickCount == 1) {
+                    tts.speak("목적지를 재검색하려면 두번 연속 클릭하세요", TextToSpeech.QUEUE_FLUSH, null, null);
+                } else if (researchClickCount == 2) {
+                    goToSearchActivity();
+                }
+                researchClickCount = 0;
+            }, DOUBLE_CLICK_INTERVAL);
         });
 
         // 즐겨찾기 등록 버튼 리스너
-        btnFavorite.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                favoriteClickCount++;
+        btnFavorite.setOnClickListener(view -> {
+            applyButtonEffect(view, vibrator); // 버튼 효과 및 진동 추가
 
-                new Handler().postDelayed(() -> {
-                    if (favoriteClickCount == 1) {
-                        // 한 번 클릭 - "즐겨찾기 등록" TTS 출력
-                        tts.speak("즐겨찾기에 등록하려면 두번 연속 클릭하세요", TextToSpeech.QUEUE_FLUSH, null, null);
-                    } else if (favoriteClickCount == 2) {
-                        // 두 번 클릭 - 즐겨찾기 등록 함수 실행
-                        saveToFavorites();
-                        tts.speak("즐겨찾기에 등록하였습니다", TextToSpeech.QUEUE_FLUSH, null, null);
-                    }
-                    // 클릭 수 초기화
-                    favoriteClickCount = 0;
-                }, DOUBLE_CLICK_INTERVAL);
-            }
+            favoriteClickCount++;
+            new Handler().postDelayed(() -> {
+                if (favoriteClickCount == 1) {
+                    tts.speak("즐겨찾기에 등록하려면 두번 연속 클릭하세요", TextToSpeech.QUEUE_FLUSH, null, null);
+                } else if (favoriteClickCount == 2) {
+                    saveToFavorites();
+                }
+                favoriteClickCount = 0;
+            }, DOUBLE_CLICK_INTERVAL);
         });
 
-        btnObjectRecognition.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                startActivity(new Intent(WalkingRouteActivity.this, DetectorActivity.class));
-            }
+        // 객체 인식 버튼 리스너
+        btnObjectRecognition.setOnClickListener(view -> {
+            applyButtonEffect(view, vibrator); // 버튼 효과 및 진동 추가
+            startActivity(new Intent(WalkingRouteActivity.this, DetectorActivity.class));
         });
-
 
         // 도보 경로 안내 버튼 리스너
-        btnWalkRouteNavi.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!isNavigating) {
-                    // 네비게이션 시작
-                    startNavigate(walkrouteResponse);
-                    btnWalkRouteNavi.setText("안내 종료"); // 버튼 텍스트 변경
-                    hideOtherButtons(); // 다른 버튼 숨기기
-                    isNavigating = true; // 네비게이션 상태 업데이트
-                    if (tts != null) {
-                        tts.speak("경로 안내를 시작합니다", TextToSpeech.QUEUE_FLUSH, null, null);
-                    }
-                } else {
-                    // 네비게이션 종료
-                    stopNavigate(); // 네비게이션 중지
-                    btnWalkRouteNavi.setText("도보 경로 안내"); // 버튼 텍스트 원래대로 변경
-                    showOtherButtons(); // 다른 버튼 보이기
-                    isNavigating = false; // 네비게이션 상태 업데이트
-                    goToSearchActivity(); // 목적지 검색 창으로 이동
-                    Toast.makeText(WalkingRouteActivity.this, "경로 안내가 종료되었습니다.", Toast.LENGTH_SHORT).show();
-                    finish();
-                    if (tts != null) {
-                        tts.speak("경로 안내가 종료되었습니다.", TextToSpeech.QUEUE_FLUSH, null, null);
-                    }
+        btnWalkRouteNavi.setOnClickListener(view -> {
+            applyButtonEffect(view, vibrator); // 버튼 효과 및 진동 추가
+
+            if (!isNavigating) {
+                // 네비게이션 시작
+                startNavigate(walkrouteResponse);
+                btnWalkRouteNavi.setText("안내 종료");
+                hideOtherButtons();
+                isNavigating = true;
+                if (tts != null) {
+                    String startMessage = "경로 안내를 시작합니다. " + distanceMessage;
+                    tts.speak(startMessage, TextToSpeech.QUEUE_FLUSH, null, null);
+
+
+                    snackbar = Snackbar.make(findViewById(android.R.id.content), distanceMessage, Snackbar.LENGTH_LONG);
+                    View snackbarView = snackbar.getView();
+
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            snackbar.dismiss();
+                        }
+                    }, 10000);
+
+                    snackbar.show();
+
                 }
+            } else {
+                // 네비게이션 종료
+                stopNavigate();
+                btnWalkRouteNavi.setText("도보 경로 안내");
+                showOtherButtons();
+                isNavigating = false;
+
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    goToSearchActivity();
+                    finish();
+                }, 2000);
             }
         });
     }
+
+
+    // 버튼 클릭 효과 및 진동 추가 함수
+    private void applyButtonEffect(View v, Vibrator vibrator) {
+        // 버튼이 눌렸을 때 크기 작아짐
+        v.setScaleX(0.95f);
+        v.setScaleY(0.95f);
+
+        // 진동 추가
+        if (vibrator != null && vibrator.hasVibrator()) {
+            vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE));
+        }
+
+        // 버튼이 눌린 후 잠시 후에 원래 크기로 복원
+        v.postDelayed(() -> {
+            v.setScaleX(1.0f);
+            v.setScaleY(1.0f);
+        }, 200);
+    }
+
 
     // 다른 버튼 숨기기
     private void hideOtherButtons() {
@@ -383,6 +508,8 @@ public class WalkingRouteActivity extends AppCompatActivity {
                             public void onResponse(Call<Favorite> call, Response<Favorite> response) {
                                 if (response.isSuccessful()) {
                                     Toast.makeText(getApplicationContext(), "즐겨찾기에 저장되었습니다!", Toast.LENGTH_SHORT).show();
+                                    tts.speak("즐겨찾기에 등록하였습니다", TextToSpeech.QUEUE_FLUSH, null, null);
+
                                 }
                             }
 
@@ -392,10 +519,13 @@ public class WalkingRouteActivity extends AppCompatActivity {
                             }
                         });
                     } else {
-                        Toast.makeText(getApplicationContext(), "이미 즐겨찾기에 저장된 항목입니다.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), "이미 즐겨찾기에 등록되어 있습니다.", Toast.LENGTH_SHORT).show();
+                        tts.speak("이미 즐겨찾기에 등록되어 있습니다.", TextToSpeech.QUEUE_FLUSH, null, null);
+
                     }
                 } else {
                     Log.e("API_ERROR", "중복 확인 실패 - Code: " + response.code() + ", Message: " + response.message());
+
                 }
             }
 
@@ -418,9 +548,28 @@ public class WalkingRouteActivity extends AppCompatActivity {
             JSONObject jsonResponse = new JSONObject(walkrouteResponse);
             JSONArray featuresArray = jsonResponse.getJSONArray("features");
 
+            // 총거리와 소요 시간 추출
+            if (featuresArray.length() > 0) {
+                JSONObject firstFeature = featuresArray.getJSONObject(0);
+                JSONObject properties = firstFeature.getJSONObject("properties");
+
+                totalDistance = properties.getInt("totalDistance");
+                totalTime = properties.getInt("totalTime");
+
+                // 총 거리 및 시간 안내
+                int minutes = totalTime / 60;
+                distanceMessage = String.format("총 거리는 %dm이고 예상 소요시간은 %d분입니다.", totalDistance, minutes);
+
+                // TTS로 안내 (TTS 초기화가 완료된 후 실행되어야 함)
+                if (tts != null) {
+                    tts.speak(distanceMessage, TextToSpeech.QUEUE_FLUSH, null, null);
+                }
+            }
+
             for (int i = 0; i < featuresArray.length(); i++) {
                 JSONObject feature = featuresArray.getJSONObject(i);
                 JSONObject geometry = feature.getJSONObject("geometry");
+
                 if (geometry.getString("type").equals("Point")) {
                     JSONArray coordinates = geometry.getJSONArray("coordinates");
                     double lon = coordinates.getDouble(0);
@@ -433,7 +582,6 @@ public class WalkingRouteActivity extends AppCompatActivity {
             }
         } catch (Exception e) {
             Log.e(TAG, "Error parsing response JSON", e);
-            return;
         }
 
         setupSensorListener(); // 방위각 감지 시작
@@ -445,8 +593,12 @@ public class WalkingRouteActivity extends AppCompatActivity {
             @Override
             public void run() {
                 if (currentWaypointIndex >= waypoints.size()) {
-                    Toast.makeText(WalkingRouteActivity.this, "목적지에 도착했습니다.", Toast.LENGTH_SHORT).show();
-                    stopNavigate();
+                    // Snackbar 표시 및 TTS 음성 출력
+                    Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), "목적지에 도착했습니다.", Snackbar.LENGTH_SHORT);
+                    snackbar.show();
+
+                    // TTS로 "목적지에 도착했습니다."를 읽기
+                    tts.speak("목적지에 도착했습니다.", TextToSpeech.QUEUE_FLUSH, null, null);                    stopNavigate();
                     return;
                 }
 
@@ -457,7 +609,6 @@ public class WalkingRouteActivity extends AppCompatActivity {
                 double distanceToWaypoint = calculateDistance(userLat, userLon, waypointLat, waypointLon);
 
                 setUserMarker(); // 위치 로그가 업데이트될 때마다 마커 설정
-
 
                 if (isCloseToWaypoint(userLat, userLon, waypointLat, waypointLon)) {
                     // 현재 위치가 거점에 가까우면 토스트와 TTS로 설명을 안내합니다.
@@ -475,14 +626,13 @@ public class WalkingRouteActivity extends AppCompatActivity {
                     tts.speak(directionMessage, TextToSpeech.QUEUE_FLUSH, null, null);  // 거리와 방향 정보를 TTS로 출력
                 }
 
-
-
-                handler.postDelayed(this, 3000); // 3초마다 업데이트
+                handler.postDelayed(this, 2000);
             }
         };
 
-        handler.post(logRunnable);
-        Toast.makeText(this, "위치 로그 시작", Toast.LENGTH_SHORT).show();
+        // 첫 실행을 5초 지연시킴
+        handler.postDelayed(logRunnable, 9000);
+
     }
 
 
@@ -491,7 +641,12 @@ public class WalkingRouteActivity extends AppCompatActivity {
         if (logRunnable != null) {
             handler.removeCallbacks(logRunnable); // Runnable 중단
         }
-        Toast.makeText(this, "위치 로그 중단", Toast.LENGTH_SHORT).show();
+        Snackbar snackbar = Snackbar.make(findViewById(android.R.id.content), "경로 안내를 종료합니다.", Snackbar.LENGTH_INDEFINITE);
+        snackbar.show();
+
+        if (tts != null) {
+            tts.speak("경로 안내를 종료합니다.", TextToSpeech.QUEUE_FLUSH, null, null);
+        }
         btnObjectRecognition.setVisibility(View.GONE);
     }
 

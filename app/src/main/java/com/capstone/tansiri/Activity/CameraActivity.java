@@ -1,6 +1,7 @@
 package com.capstone.tansiri.Activity;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -18,8 +19,14 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.Trace;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.speech.tts.TextToSpeech;
+import android.util.Log;
 import android.util.Size;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
@@ -40,6 +47,7 @@ import com.capstone.tansiri.ai.env.Logger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Locale;
 
 public abstract class CameraActivity extends AppCompatActivity
         implements OnImageAvailableListener,
@@ -90,6 +98,16 @@ public abstract class CameraActivity extends AppCompatActivity
     private Button btnFinishMap;
     ArrayList<String> deviceStrings = new ArrayList<String>();
 
+
+    private Vibrator vibrator;
+    private TextToSpeech tts;
+    private int finishClickCount = 0;
+    private static final long DOUBLE_TAP_TIMEOUT = 500; // 두 번 클릭 간 최대 시간
+    private long lastTouchTime = 0;
+
+
+
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         LOGGER.d("onCreate " + this);
@@ -99,16 +117,73 @@ public abstract class CameraActivity extends AppCompatActivity
         detectedclassInfoTextView = findViewById(R.id.detectedclass_info);//여기서 감지된 객체 클래스명을 보냄
 
 
+        Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+        tts = new TextToSpeech(this, status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                tts.setLanguage(Locale.KOREAN); // 한국어로 설정
+                tts.speak("전방 촬영 화면입니다.", TextToSpeech.QUEUE_FLUSH, null, null);
+            } else {
+            }
+        });
+
+
+
         setContentView(R.layout.tfe_od_activity_camera);
 
         // 버튼 참조 가져오기
         btnFinishMap = findViewById(R.id.btn_camera_finish);
 
-        // 버튼 클릭 시 Activity 종료
-        btnFinishMap.setOnClickListener(new View.OnClickListener() {
+
+        // btnFinishMap에 모션과 두 번 클릭 기능 추가
+        btnFinishMap.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public void onClick(View v) {
-                finish();
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        // 버튼을 살짝 축소
+                        v.setScaleX(0.95f);
+                        v.setScaleY(0.95f);
+
+                        // 진동 추가
+                        if (vibrator != null && vibrator.hasVibrator()) {
+                            vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)); // 0.1초 진동
+                        }
+
+                        long currentTime = System.currentTimeMillis();
+                        if (currentTime - lastTouchTime < DOUBLE_TAP_TIMEOUT) {
+                            // 두 번 클릭 시 TTS 실행 취소하고 종료 기능 실행
+                            if (tts != null) {
+                                tts.speak("촬영 종료", TextToSpeech.QUEUE_FLUSH, null, null);
+                            }
+
+                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    finish();
+                                }
+                            }, 1000);
+
+                            // 클릭 카운트 초기화
+                            finishClickCount = 0;
+                        } else {
+                            // 첫 번째 클릭 시 TTS 안내 메시지 출력
+                            lastTouchTime = currentTime;
+                            finishClickCount = 1;
+                            if (tts != null) {
+                                tts.speak("촬영을 종료하시려면 두 번 연속 클릭해 주세요", TextToSpeech.QUEUE_FLUSH, null, null);
+                            }
+
+                        }
+                        return true;
+
+                    case MotionEvent.ACTION_UP:
+                        // 버튼을 원래 크기로 복원
+                        v.setScaleX(1f);
+                        v.setScaleY(1f);
+                        return true;
+                }
+                return false;
             }
         });
 
@@ -321,12 +396,22 @@ public abstract class CameraActivity extends AppCompatActivity
                     };
 
             processImage();
+
             if (rgbBytes != null) {
                 int detectedObjectColor = 0xFF00FF00; // Green bounding box color
                 for (int i = 0; i < rgbBytes.length; i++) {
                     if (rgbBytes[i] == detectedObjectColor) {
-                        // 진동 코드 또는 기타 알림 기능을 추가할 수 있습니다.
-                        break;
+                        // 진동 코드 추가
+                        if (vibrator != null) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                // Android 8.0 이상에서는 VibrationEffect 사용
+                                vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+                            } else {
+                                // Android 8.0 미만에서는 기본 vibrate 사용
+                                vibrator.vibrate(500);  // 500ms 동안 진동
+                            }
+                        }
+                        break;  // 특정 색상이 감지되면 루프 종료
                     }
                 }
             }

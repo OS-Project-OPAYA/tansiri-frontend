@@ -1,5 +1,6 @@
 package com.capstone.tansiri.Activity;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
@@ -11,6 +12,8 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.media.ImageReader.OnImageAvailableListener;
 import android.os.SystemClock;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 import android.util.Size;
 import android.util.TypedValue;
@@ -62,6 +65,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     private MultiBoxTracker tracker;
 
     private BorderedText borderedText;
+
 
     @Override
     public void onPreviewSizeChosen(final Size size, final int rotation) {
@@ -270,16 +274,21 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
                                 new Runnable() {
                                     @Override
                                     public void run() {
+                                        TextView detectedClassInfo = findViewById(R.id.detectedclass_info);
+
                                         if (!mappedRecognitions.isEmpty()) {
                                             String detectedClassName = mappedRecognitions.get(0).getTitle(); // 첫 번째 객체의 클래스명
-                                            TextView detectedClassInfo = findViewById(R.id.detectedclass_info);
                                             detectedClassInfo.setText(detectedClassName);
+
+                                            // 진동을 발생시키기 위해 Vibrator 사용
+                                            Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                                            if (vibrator != null && vibrator.hasVibrator()) {
+                                                vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+                                            }
                                         } else {
-                                            TextView detectedClassInfo = findViewById(R.id.detectedclass_info);
                                             detectedClassInfo.setText("감지된 객체 없음");
                                         }
-//                                        showFrameInfo(previewWidth + "x" + previewHeight);
-//                                        showCropInfo(cropCopyBitmap.getWidth() + "x" + cropCopyBitmap.getHeight());
+
                                         showInference(lastProcessingTimeMs + "ms");
                                     }
                                 });
